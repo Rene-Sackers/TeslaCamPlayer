@@ -1,0 +1,81 @@
+﻿@page "/"
+@using TeslaCamPlayer.BlazorHosted.Shared.Models
+@if (_clips == null)
+{
+	<text>Loading...</text>
+}
+else
+{
+	<div class="main-container">
+		<div class="viewer">
+			
+		</div>
+		<div class="events-scrubber">
+			<div class="events-scrubber-toolbar">
+				<div class="d-flex align-center">
+					<div class="date-picker">
+						<span>Monday, July 17</span>
+						<MudIconButton Size="Size.Small" Icon="@Icons.Material.Filled.KeyboardArrowDown" />
+					</div>
+					<MudSpacer />
+					<MudIcon Size="Size.Small" Icon="@Icons.Material.Filled.ZoomOut"/>
+					<MudSlider T="int" Class="mx-1 zoom-slider" Min="30" Max="200" Step="10" @bind-Value="StepHeight"/>
+					<MudIcon Size="Size.Small" Icon="@Icons.Material.Filled.ZoomIn"/>
+				</div>
+			</div>
+			<div class="timeline">
+				<div class="current-time">
+					<div class="time-indicator">@_latestVideoDate.TimeOfDay.ToString("hh\\:mm\\:\\ss")</div>
+				</div>
+
+				@{
+					var endTime = _latestVideoDate.Add(TimeSpan.FromHours(1));
+					endTime = endTime.Subtract(new TimeSpan(0, endTime.Minute, endTime.Second));
+					var currentTime = endTime;
+					var startTime = currentTime.AddHours(-12);
+					var stepSizeInMinutes = 10;
+				}
+				@while (currentTime > startTime)
+				{
+					var differenceInSteps = endTime.Subtract(currentTime).TotalMinutes / stepSizeInMinutes;
+					<div class="hour-ticks" style="top: calc(@(differenceInSteps) * var(--timeline-step-height))">
+						<div class="hour-label">@currentTime.TimeOfDay.ToString("hh\\:mm")</div>
+						<div class="tick tick--hour"></div>
+						<div class="tick"></div>
+						<div class="tick"></div>
+						<div class="tick"></div>
+						<div class="tick"></div>
+						<div class="tick tick--large"></div>
+						<div class="tick"></div>
+						<div class="tick"></div>
+						<div class="tick"></div>
+						<div class="tick"></div>
+					</div>
+					currentTime = currentTime.AddMinutes(-stepSizeInMinutes);
+				}
+			</div>
+		</div>
+	</div>
+	<style>
+		:root {
+			--timeline-step-height: @(StepHeight)px;
+		}
+	</style>
+}
+
+@code {
+	[Inject]
+	private HttpClient HttpClient { get; set; }
+	
+	private int StepHeight { get; set; } = 100;
+
+	private Clip[] _clips;
+	private DateTime _latestVideoDate;
+	
+	protected override async Task OnInitializedAsync()
+	{
+		var clips = (await HttpClient.GetFromJsonAsync<Clip[]>("Api/GetClips"))!;
+		_latestVideoDate = clips.Max(c => c.EndDate);
+		_clips = clips;
+	}
+}
