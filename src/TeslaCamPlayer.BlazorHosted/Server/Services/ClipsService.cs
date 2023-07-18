@@ -1,4 +1,5 @@
-﻿using System.Text.RegularExpressions;
+﻿using System.IO;
+using System.Text.RegularExpressions;
 using Newtonsoft.Json;
 using Serilog;
 using TeslaCamPlayer.BlazorHosted.Server.Providers.Interfaces;
@@ -9,6 +10,7 @@ namespace TeslaCamPlayer.BlazorHosted.Server.Services;
 
 public partial class ClipsService : IClipsService
 {
+	private static readonly string CacheFilePath = Path.Combine(AppContext.BaseDirectory, "clips.json");
 	private static readonly Regex FileNameRegex = FileNameRegexGenerated();
 	private static Clip[] _cache;
 	
@@ -21,9 +23,14 @@ public partial class ClipsService : IClipsService
 		_ffProbeService = ffProbeService;
 	}
 
+	private async Task<Clip[]> GetCachedAsync()
+		=> File.Exists(CacheFilePath)
+			? JsonConvert.DeserializeObject<Clip[]>(await File.ReadAllTextAsync(CacheFilePath))
+			: null;
+
 	public async Task<Clip[]> GetClipsAsync()
 	{
-		if (_cache != null)
+		if ((_cache ??= await GetCachedAsync()) != null)
 			return _cache;
 
 		var videoFileInfos = (await Task.WhenAll(Directory
@@ -47,9 +54,13 @@ public partial class ClipsService : IClipsService
 			.AsParallel()
 			.Where(e => !string.IsNullOrWhiteSpace(e)) // TODO: Work with RecentClips
 			.Select(e => ParseClip(e, videoFiles))
+			.ToArray()
+			.OrderByDescending(c => c.StartDate)
 			.ToArray();
 
-		return _cache = clips;
+		_cache = clips;
+		await File.WriteAllTextAsync(CacheFilePath, JsonConvert.SerializeObject(clips));
+		return _cache;
 	}
 
 	private async Task<VideoFile> TryParseVideoFileAsync(string path, Match regexMatch)
@@ -136,12 +147,19 @@ public partial class ClipsService : IClipsService
 			})
 			.ToArray();
 
-		var expectedEventJsonPath = Path.Combine(Path.GetDirectoryName(eventVideoFiles.First().FilePath)!, "event.json");
+		var eventFolderPath = Path.GetDirectoryName(eventVideoFiles.First().FilePath)!;
+		var expectedEventJsonPath = Path.Combine(eventFolderPath, "event.json");
 		var eventInfo = TryReadEvent(expectedEventJsonPath);
+
+		var expectedEventThumbnailPath = Path.Combine(eventFolderPath, "thumb.png");
+		var thumbnailUrl = File.Exists(expectedEventThumbnailPath)
+			? $"/Api/Thumbnail/{Uri.EscapeDataString(expectedEventThumbnailPath)}"
+			: "/img/no-thumbnail.png";
 
 		return new Clip(eventVideoFiles.First().ClipType, segments)
 		{
-			Event = eventInfo
+			Event = eventInfo,
+			ThumbnailUrl = thumbnailUrl
 		};
 	}
 

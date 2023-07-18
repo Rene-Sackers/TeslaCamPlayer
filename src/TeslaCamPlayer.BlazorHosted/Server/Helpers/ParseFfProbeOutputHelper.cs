@@ -10,22 +10,23 @@ public static partial class ParseFfProbeOutputHelper
 	public static TimeSpan? GetDuration(string output)
 	{
 		using var reader = new StringReader(output);
-		string line;
-		while ((line = reader.ReadLine()) != null && !line.TrimStart().StartsWith("Duration: ")) ;
+		while (reader.ReadLine() is { } line)
+		{
+			if (!line.TrimStart().StartsWith("Duration: "))
+				continue;
+			
+			var matches = DurationRegex().Match(line);
+			if (!matches.Success)
+				return null;
+		
+			return new TimeSpan(
+				0,
+				int.Parse(matches.Groups["h"].Value),
+				int.Parse(matches.Groups["m"].Value),
+				int.Parse(matches.Groups["s"].Value),
+				int.Parse(matches.Groups["ms"].Value));
+		}
 
-		if (line == null)
-			return null;
-		
-		var matches = DurationRegex().Match(line);
-		if (!matches.Success)
-			return null;
-		
-		return new TimeSpan(
-			0,
-			int.Parse(matches.Groups["h"].Value),
-			int.Parse(matches.Groups["m"].Value),
-			int.Parse(matches.Groups["s"].Value),
-			int.Parse(matches.Groups["ms"].Value));
-		
+		return null;
 	}
 }

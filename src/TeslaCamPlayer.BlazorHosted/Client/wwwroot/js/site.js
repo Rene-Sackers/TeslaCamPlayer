@@ -1,0 +1,1 @@
+window.getScrollTop = (element) => element.scrollTop;

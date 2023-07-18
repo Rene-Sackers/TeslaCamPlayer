@@ -8,6 +8,7 @@ public class Clip
 	public DateTime StartDate { get; }
 	public DateTime EndDate { get; }
 	public double TotalSeconds { get; }
+	public string ThumbnailUrl { get; set; }
 
 	public Clip(ClipType type, ClipVideoSegment[] segments)
 	{

@@ -1,81 +1,198 @@
 ﻿@page "/"
 @using TeslaCamPlayer.BlazorHosted.Shared.Models
+@using TeslaCamPlayer.BlazorHosted.Client.Helpers
 @if (_clips == null)
 {
 	<text>Loading...</text>
 }
 else
 {
-	<div class="main-container">
+	<div class="main-content">
 		<div class="viewer">
-			
+			Viewer
 		</div>
-		<div class="events-scrubber">
-			<div class="events-scrubber-toolbar">
-				<div class="d-flex align-center">
-					<div class="date-picker">
-						<span>Monday, July 17</span>
-						<MudIconButton Size="Size.Small" Icon="@Icons.Material.Filled.KeyboardArrowDown" />
-					</div>
-					<MudSpacer />
-					<MudIcon Size="Size.Small" Icon="@Icons.Material.Filled.ZoomOut"/>
-					<MudSlider T="int" Class="mx-1 zoom-slider" Min="30" Max="200" Step="10" @bind-Value="StepHeight"/>
-					<MudIcon Size="Size.Small" Icon="@Icons.Material.Filled.ZoomIn"/>
-				</div>
-			</div>
-			<div class="timeline">
-				<div class="current-time">
-					<div class="time-indicator">@_latestVideoDate.TimeOfDay.ToString("hh\\:mm\\:\\ss")</div>
-				</div>
+		<div class="browser">
+			<MudDatePicker
+				@ref="_datePicker"
+				PickerVariant="PickerVariant.Static"
+				IsDateDisabledFunc="IsDateDisabledFunc"
+				FirstDayOfWeek="DayOfWeek.Monday"
+				Class="browser-date-picker"
+				DateChanged="DatePicked"/>
 
-				@{
-					var endTime = _latestVideoDate.Add(TimeSpan.FromHours(1));
-					endTime = endTime.Subtract(new TimeSpan(0, endTime.Minute, endTime.Second));
-					var currentTime = endTime;
-					var startTime = currentTime.AddHours(-12);
-					var stepSizeInMinutes = 10;
-				}
-				@while (currentTime > startTime)
-				{
-					var differenceInSteps = endTime.Subtract(currentTime).TotalMinutes / stepSizeInMinutes;
-					<div class="hour-ticks" style="top: calc(@(differenceInSteps) * var(--timeline-step-height))">
-						<div class="hour-label">@currentTime.TimeOfDay.ToString("hh\\:mm")</div>
-						<div class="tick tick--hour"></div>
-						<div class="tick"></div>
-						<div class="tick"></div>
-						<div class="tick"></div>
-						<div class="tick"></div>
-						<div class="tick tick--large"></div>
-						<div class="tick"></div>
-						<div class="tick"></div>
-						<div class="tick"></div>
-						<div class="tick"></div>
-					</div>
-					currentTime = currentTime.AddMinutes(-stepSizeInMinutes);
-				}
+			<div @ref="_eventsList" class="events-list" @onscroll="EventListScrolled">
+				<Virtualize TItem="Clip" ItemSize="@EventItemHeight" Items="@_clips" OverscanCount="10">
+					<ItemContent>
+						<div class="event @(_highlightClip == context ? "event--highlight" : null)" @key="@context.EndDate">
+							@if (!string.IsNullOrWhiteSpace(context.ThumbnailUrl))
+							{
+								<img class="thumbnail" src="@context.ThumbnailUrl" loading="lazy"/>
+							}
+							<div class="details ml-2">
+								<div class="icons">
+									@foreach (var icon in GetClipIcons(context))
+									{
+										<MudIcon Icon="@icon" Size="Size.Small" Class="mr-1"/>
+									}
+								</div>
+								<div class="date">
+									@context.Event.Timestamp.ToString("yyyy-MM-dd HH:mm:ss")
+								</div>
+							</div>
+						</div>
+					</ItemContent>
+					<Placeholder>
+						<div class="event">
+							<MudSkeleton Class="thumbnail" Width="66.66px" />
+							<div class="details ml-2">
+								<div class="icons">
+									<MudSkeleton Width="20%" />
+								</div>
+								<div class="date">
+									<MudSkeleton Width="80%" />
+								</div>
+							</div>
+						</div>
+					</Placeholder>
+				</Virtualize>
 			</div>
 		</div>
 	</div>
-	<style>
-		:root {
-			--timeline-step-height: @(StepHeight)px;
-		}
-	</style>
 }
 
 @code {
+	private const int EventItemHeight = 60;
+
 	[Inject]
 	private HttpClient HttpClient { get; set; }
-	
-	private int StepHeight { get; set; } = 100;
+
+	[Inject]
+	private IJSRuntime JsRuntime { get; set; }
 
 	private Clip[] _clips;
-	private DateTime _latestVideoDate;
-	
+	private HashSet<DateTime> _eventDates;
+	private MudDatePicker _datePicker;
+	private bool _setDatePickerInitialDate;
+	private ElementReference _eventsList;
+	private Clip _highlightClip;
+	private Timer _scrollDebounceTimer;
+	private DateTime _ignoreDatePicked;
+
 	protected override async Task OnInitializedAsync()
 	{
-		var clips = (await HttpClient.GetFromJsonAsync<Clip[]>("Api/GetClips"))!;
-		_latestVideoDate = clips.Max(c => c.EndDate);
-		_clips = clips;
+		_scrollDebounceTimer = new(ScrollDebounceTimerTick);
+		_clips = await HttpClient.GetFromNewtonsoftJsonAsync<Clip[]>("Api/GetClips");
+
+		_eventDates = _clips
+			.Select(c => c.StartDate.Date)
+			.Concat(_clips.Select(c => c.EndDate.Date))
+			.Distinct()
+			.ToHashSet();
+	}
+
+	protected override async Task OnAfterRenderAsync(bool firstRender)
+	{
+		if (!_setDatePickerInitialDate && _clips != null && _datePicker != null)
+		{
+			_setDatePickerInitialDate = true;
+			await _datePicker.GoToDate(_clips.Max(c => c.EndDate));
+		}
+	}
+
+
+	private bool IsDateDisabledFunc(DateTime date)
+		=> !_eventDates.Contains(date);
+
+	private static string[] GetClipIcons(Clip clip)
+	{
+		// sentry_aware_object_detection
+		// user_interaction_honk
+		// user_interaction_dashcam_panel_save
+		// user_interaction_dashcam_icon_tapped
+		// sentry_aware_accel_0.532005
+
+		var baseIcon = clip.Type switch {
+			ClipType.Recent => Icons.Material.Filled.History,
+			ClipType.Saved => Icons.Material.Filled.CameraAlt,
+			ClipType.Sentry => Icons.Material.Filled.RadioButtonChecked,
+			_ => Icons.Material.Filled.QuestionMark
+		};
+
+		if (clip.Type == ClipType.Recent || clip.Type == ClipType.Unknown || clip.Event == null)
+			return new[] { baseIcon };
+
+		var secondIcon = clip.Event.Reason switch
+		{
+			"sentry_aware_object_detection" => Icons.Material.Filled.Animation,
+			"user_interaction_honk" => Icons.Material.Filled.Campaign,
+			"user_interaction_dashcam_panel_save" => Icons.Material.Filled.Archive,
+			_ => null
+		};
+
+		if (clip.Event.Reason.StartsWith("sentry_aware_accel_"))
+			secondIcon = Icons.Material.Filled.OpenWith;
+
+		return secondIcon == null ? new [] { baseIcon } : new[] { baseIcon, secondIcon };
+	}
+
+	private class ScrollToOptions
+	{
+		public int? Left { get; set; }
+
+		public int? Top { get; set; }
+
+		public string Behavior { get; set; }
+	}
+
+	private class DOMRect
+	{
+		public double Bottom { get; set; }
+		public double Top { get; set; }
+		public double Left { get; set; }
+		public double Right { get; set; }
+		public double Width { get; set; }
+		public double Height { get; set; }
+		public double X { get; set; }
+		public double Y { get; set; }
+	}
+
+	private async Task DatePicked(DateTime? pickedDate)
+	{
+		Console.WriteLine("date picked");
+		if (!pickedDate.HasValue || _ignoreDatePicked == pickedDate)
+			return;
+
+		var firstClipAtDate = _clips.FirstOrDefault(c => c.StartDate.Date == pickedDate);
+		if (firstClipAtDate == null)
+			return;
+
+
+		var listBoundingRect = await _eventsList.MudGetBoundingClientRectAsync();
+		var index = Array.IndexOf(_clips, firstClipAtDate);
+		var top = (int)(index * EventItemHeight - listBoundingRect.Height / 2 + EventItemHeight / 2);
+
+		await JsRuntime.InvokeVoidAsync("HTMLElement.prototype.scrollTo.call", _eventsList, new ScrollToOptions
+		{
+			Behavior = "smooth",
+			Top = top
+		});
+
+		await Task.Delay(500);
+		_highlightClip = firstClipAtDate;
+	}
+
+	private void EventListScrolled()
+		=> _scrollDebounceTimer.Change(500, Timeout.Infinite);
+
+	private async void ScrollDebounceTimerTick(object _)
+	{
+		var scrollTop = await JsRuntime.InvokeAsync<double>("getScrollTop", _eventsList);
+		var listBoundingRect = await _eventsList.MudGetBoundingClientRectAsync();
+		var centerScrollPosition = scrollTop + listBoundingRect.Height / 2 + EventItemHeight / 2;
+		var itemIndex = (int)centerScrollPosition / EventItemHeight;
+		var atClip = _clips.ElementAt(Math.Min(_clips.Length - 1, itemIndex));
+
+		_ignoreDatePicked = atClip.StartDate.Date;
+		await _datePicker.GoToDate(atClip.StartDate.Date);
 	}
 }

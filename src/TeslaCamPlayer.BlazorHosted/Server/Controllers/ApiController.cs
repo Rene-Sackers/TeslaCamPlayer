@@ -36,4 +36,19 @@ public class ApiController : ControllerBase
 		
 		return PhysicalFile(path, "video/mp4", true);
 	}
+
+	[HttpGet("{path}.png")]
+	public IActionResult Thumbnail(string path)
+	{
+		path += ".png";
+
+		path = Path.GetFullPath(path);
+		if (!path.StartsWith(_settingsProvider.Settings.ClipsRootPath))
+			return BadRequest($"Thumbnail must be in subdirectory under \"{_settingsProvider.Settings.ClipsRootPath}\"");
+
+		if (!System.IO.File.Exists(path))
+			return NotFound();
+
+		return PhysicalFile(path, "image/png");
+	}
 }

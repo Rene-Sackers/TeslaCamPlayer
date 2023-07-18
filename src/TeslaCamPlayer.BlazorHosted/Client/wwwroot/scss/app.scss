@@ -1,87 +1,82 @@
 ﻿@import "components/*.scss";
+$border-color: #EEE;
+$border-color-darken: darken($border-color, 20%);
 
 html, body {
 	height: 100vh;
-	overflow: hidden;
+	min-height: 500px;
 }
 
 #app {
 	height: 100%;
 }
 
-:root {
-	--timeline-step-height: 100px;
-}
-
-$border-color: #EEE;
-$border-color-darken: darken($border-color, 20%);
-
-.main-container {
-	height: 100vh;
+.main-content {
 	display: flex;
+	height: 100%;
 	
 	.viewer {
 		flex-grow: 1;
 	}
 	
-	.events-scrubber {
-		width: 350px;
-		border-left: 1px solid $border-color;
+	.browser {
 		display: flex;
 		flex-flow: column;
 	}
 }
 
-.events-scrubber-toolbar {
-	padding: 10px;
-	border-bottom: 1px solid $border-color;
-	
-	.date-picker {
-		font-size: 0.8rem;
+.events-list {
+	overflow-y: auto;
+}
+
+$event-item-height: 60px;
+$event-item-padding: 5px;
+$event-item-inner-height: $event-item-height - $event-item-padding * 2;
+.event {
+	display: flex;
+	height: $event-item-height;
+	padding: $event-item-padding;
+	transition: background-color 0.2s ease;
+	cursor: pointer;
+	align-items: center;
+
+	@keyframes highlight-animation {
+		0% {
+			background-color: transparent;
+		}
+		50% {
+			background-color: var(--mud-palette-background-grey);
+		}
+		100% {
+			background-color: transparent;
+		}
 	}
 	
-	.zoom-slider {
-		width: 100px;
+	&--highlight {
+		animation: highlight-animation 1s ease forwards;
+		
+	}
+
+	&:hover {
+		background-color: var(--mud-palette-background-grey) !important;
+	}
+
+	.thumbnail {
+		// Pictures are 4:3
+		width: #{calc(round(calc($event-item-inner-height / 3 * 4 * 100)) / 100)}px;
+		height: 100%;
+		transform: none;
+	}
+	
+	.details {
+		flex-grow: 1;
 	}
 }
 
-.timeline {
-	flex-grow: 1;
-	position: relative;
-	overflow-y: auto;
+.browser-date-picker {
+	flex-shrink: 0;
 	
-	.hour-ticks {
-		position: absolute;
-		height: var(--timeline-step-height);
-		left: 0;
-		right: 0;
-		//border-top: 1px solid #F00;
-		box-sizing: border-box;
-		
-		.hour-label {
-			position: absolute;
-			left: 20px;
-			top: -0.5lh;
-			color: $border-color-darken;
-		}
-		
-		.tick {
-			$tick-height: 2px;
-			transform: translateY($tick-height * -0.5);
-			background-color: $border-color;
-			width: 5px;
-			height: $tick-height;
-			
-			margin-bottom: calc(var(--timeline-step-height) / 10 - $tick-height);
-			
-			&--hour {
-				width: 12px;
-				background-color: $border-color-darken;
-			}
-			
-			&--large {
-				width: 8px;
-			}
-		}
+	.mud-picker-datepicker-toolbar {
+		display: none;	
 	}
 }
