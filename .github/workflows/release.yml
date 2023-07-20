@@ -31,6 +31,7 @@ jobs:
   docker:
     runs-on: ubuntu-latest
     needs: version
+    if: false
     env:
       VERSION: ${{needs.version.outputs.VERSION}}
     steps:
@@ -51,6 +52,7 @@ jobs:
     needs: version
     env:
       VERSION: ${{needs.version.outputs.VERSION}}
+      ZIP_FILE_NAME: "teslacamplayer-win-x64-${{needs.version.outputs.VERSION}}.zip"
     steps:
       - name: Checkout
         uses: actions/checkout@v3
@@ -72,5 +74,11 @@ jobs:
       - name: Zip release
         uses: TheDoctor0/zip-release@0.7.1
         with:
-          filename: teslacamplayer-win-x64-$VERSION.zip
+          filename: $env.ZIP_FILE_NAME
           directory: ./publish/
+
+      - name: Create release
+        uses: softprops/action-gh-release@v1
+        with:
+          files: "./publish/${{env.ZIP_FILE_NAME}}"
+          tag_name: "v${{env.VERSION}}"
