@@ -2,6 +2,7 @@
 using Microsoft.JSInterop;
 using MudBlazor;
 using System.Timers;
+using Microsoft.AspNetCore.Components.Web;
 using TeslaCamPlayer.BlazorHosted.Client.Components;
 using TeslaCamPlayer.BlazorHosted.Client.Helpers;
 using TeslaCamPlayer.BlazorHosted.Shared.Models;
@@ -177,5 +178,27 @@ public partial class Index : ComponentBase
 			await SetActiveClip(next);
 			await ScrollListToActiveClip();
 		}
+	}
+
+	private async Task DatePickerOnMouseWheel(WheelEventArgs e)
+	{
+		if (e.DeltaY == 0 && e.DeltaX == 0 || !_datePicker.PickerMonth.HasValue)
+			return;
+
+		var goToNextMonth = e.DeltaY + e.DeltaX * -1 < 0;
+		var targetDate = _datePicker.PickerMonth.Value.AddMonths(goToNextMonth ? 1 : -1);
+		var endOfMonth = targetDate.AddMonths(1);
+
+		var clipsInOrAfterTargetMonth = _clips.Any(c => c.StartDate >= targetDate);
+		var clipsInOrBeforeTargetMonth = _clips.Any(c => c.StartDate <= endOfMonth);
+		
+		if (goToNextMonth && !clipsInOrAfterTargetMonth)
+			return;
+		
+		if (!goToNextMonth && !clipsInOrBeforeTargetMonth)
+			return;
+		
+		_ignoreDatePicked = targetDate;
+		await _datePicker.GoToDate(targetDate);
 	}
 }

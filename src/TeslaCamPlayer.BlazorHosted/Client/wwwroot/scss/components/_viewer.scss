@@ -19,10 +19,18 @@
 
 	.top-row {
 		align-items: flex-end;
+		
+		video {
+			object-position: bottom;
+		}
 	}
 
 	.bottom-row {
 		align-items: flex-start;
+
+		video {
+			object-position: top;
+		}
 	}
 
 	.controls {

@@ -93,10 +93,17 @@ public partial class ClipViewer : ComponentBase
 
 	private async Task ExecuteOnPlayers(Func<VideoPlayer, Task> player)
 	{
-		await player(_videoPlayerFront);
-		await player(_videoPlayerLeftRepeater);
-		await player(_videoPlayerRightRepeater);
-		await player(_videoPlayerBack);
+		try
+		{
+			await player(_videoPlayerFront);
+			await player(_videoPlayerLeftRepeater);
+			await player(_videoPlayerRightRepeater);
+			await player(_videoPlayerBack);
+		}
+		catch (Exception e)
+		{
+			// ignore
+		}
 	}
 
 	private async Task ToggleSetPlayingAsync(bool? play = null)
@@ -181,7 +188,7 @@ public partial class ClipViewer : ComponentBase
 			}
 
 			var secondsIntoSegment = (scrubToDate - segment.StartDate).TotalSeconds;
-			await InvokeAsync(async () => await ExecuteOnPlayers(async p => await p.SetTimeAsync(secondsIntoSegment)));
+			await ExecuteOnPlayers(async p => await p.SetTimeAsync(secondsIntoSegment));
 		}
 		catch
 		{

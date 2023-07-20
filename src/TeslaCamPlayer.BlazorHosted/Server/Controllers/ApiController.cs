@@ -1,4 +1,6 @@
+using System.Web;
 using Microsoft.AspNetCore.Mvc;
+using Serilog;
 using TeslaCamPlayer.BlazorHosted.Server.Providers.Interfaces;
 using TeslaCamPlayer.BlazorHosted.Server.Services.Interfaces;
 using TeslaCamPlayer.BlazorHosted.Shared.Models;
@@ -9,12 +11,12 @@ namespace TeslaCamPlayer.BlazorHosted.Server.Controllers;
 [Route("Api/[action]")]
 public class ApiController : ControllerBase
 {
-	private readonly ISettingsProvider _settingsProvider;
 	private readonly IClipsService _clipsService;
+	private readonly string _rootFullPath;
 
 	public ApiController(ISettingsProvider settingsProvider, IClipsService clipsService)
 	{
-		_settingsProvider = settingsProvider;
+		_rootFullPath = Path.GetFullPath(settingsProvider.Settings.ClipsRootPath);
 		_clipsService = clipsService;
 	}
 
@@ -22,33 +24,29 @@ public class ApiController : ControllerBase
 	public async Task<Clip[]> GetClips()
 		=> await _clipsService.GetClipsAsync();
 
+	private bool IsUnderRootPath(string path)
+		=> path.StartsWith(_rootFullPath);
+
 	[HttpGet("{path}.mp4")]
 	public IActionResult Video(string path)
-	{
-		path += ".mp4";
-
-		path = Path.GetFullPath(path);
-		if (!path.StartsWith(_settingsProvider.Settings.ClipsRootPath))
-			return BadRequest($"Video must be in subdirectory under \"{_settingsProvider.Settings.ClipsRootPath}\"");
-
-		if (!System.IO.File.Exists(path))
-			return NotFound();
-		
-		return PhysicalFile(path, "video/mp4", true);
-	}
+		=> ServeFile(path, ".mp4", "video/mp4", true);
 
 	[HttpGet("{path}.png")]
 	public IActionResult Thumbnail(string path)
+		=> ServeFile(path, ".png", "image/png");
+
+	private IActionResult ServeFile(string path, string extension, string contentType, bool enableRangeProcessing = false)
 	{
-		path += ".png";
+		path = HttpUtility.UrlDecode(path);
+		path += extension;
 
 		path = Path.GetFullPath(path);
-		if (!path.StartsWith(_settingsProvider.Settings.ClipsRootPath))
-			return BadRequest($"Thumbnail must be in subdirectory under \"{_settingsProvider.Settings.ClipsRootPath}\"");
+		if (!IsUnderRootPath(path))
+			return BadRequest($"File must be in subdirectory under \"{_rootFullPath}\", but was \"{path}\"");
 
 		if (!System.IO.File.Exists(path))
 			return NotFound();
 
-		return PhysicalFile(path, "image/png");
+		return PhysicalFile(path, contentType, enableRangeProcessing);
 	}
 }
