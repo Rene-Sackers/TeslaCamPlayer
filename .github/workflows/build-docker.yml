@@ -29,7 +29,7 @@ jobs:
         run: docker login -u renesackers -p ${{ secrets.DOCKER_HUB }}
         
       - name: Build the Docker image
-        run: docker build ./src/ --file Dockerfile -t renesackers/teslacamplayer:$VERSION -t renesackers/teslacamplayer:latest
+        run: docker build ./src/ -t renesackers/teslacamplayer:$VERSION -t renesackers/teslacamplayer:latest
         
       - name: Push docker image
         run: docker push --all-tags renesackers/teslacamplayer
