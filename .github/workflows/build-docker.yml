@@ -22,11 +22,11 @@ jobs:
           git tag v$VERSION ${{ github.sha }}
           git push origin v$VERSION
             
-    - name: Docker login
-      run: docker login -u renesackers -p ${{ secrets.DOCKER_HUB }}
-      
-    - name: Build the Docker image
-      run: docker build ./src/ --file Dockerfile -t renesackers/teslacamplayer:$VERSION -t renesackers/teslacamplayer:latest
-      
-    - name: Push docker image
-      run: docker push --all-tags renesackers/teslacamplayer
+      - name: Docker login
+        run: docker login -u renesackers -p ${{ secrets.DOCKER_HUB }}
+        
+      - name: Build the Docker image
+        run: docker build ./src/ --file Dockerfile -t renesackers/teslacamplayer:$VERSION -t renesackers/teslacamplayer:latest
+        
+      - name: Push docker image
+        run: docker push --all-tags renesackers/teslacamplayer
