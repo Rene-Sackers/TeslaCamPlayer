@@ -8,8 +8,8 @@
 else
 {
 	<div class="main-content">
-		<div class="viewer">
-			Viewer
+		<div class="viewer-container">
+			<ClipViewer @ref="_clipViewer" PreviousButtonClicked="PreviousButtonClicked" NextButtonClicked="NextButtonClicked" />
 		</div>
 		<div class="browser">
 			<MudDatePicker
@@ -23,7 +23,7 @@ else
 			<div @ref="_eventsList" class="events-list" @onscroll="EventListScrolled">
 				<Virtualize TItem="Clip" ItemSize="@EventItemHeight" Items="@_clips" OverscanCount="10">
 					<ItemContent>
-						<div class="event @(_highlightClip == context ? "event--highlight" : null)" @key="@context.EndDate">
+						<div class="event @(_activeClip == context ? "event--active" : null)" @key="@context.EndDate" @onclick="@(() => SetActiveClip(context))">
 							@if (!string.IsNullOrWhiteSpace(context.ThumbnailUrl))
 							{
 								<img class="thumbnail" src="@context.ThumbnailUrl" loading="lazy"/>
@@ -58,141 +58,4 @@ else
 			</div>
 		</div>
 	</div>
-}
-
-@code {
-	private const int EventItemHeight = 60;
-
-	[Inject]
-	private HttpClient HttpClient { get; set; }
-
-	[Inject]
-	private IJSRuntime JsRuntime { get; set; }
-
-	private Clip[] _clips;
-	private HashSet<DateTime> _eventDates;
-	private MudDatePicker _datePicker;
-	private bool _setDatePickerInitialDate;
-	private ElementReference _eventsList;
-	private Clip _highlightClip;
-	private Timer _scrollDebounceTimer;
-	private DateTime _ignoreDatePicked;
-
-	protected override async Task OnInitializedAsync()
-	{
-		_scrollDebounceTimer = new(ScrollDebounceTimerTick);
-		_clips = await HttpClient.GetFromNewtonsoftJsonAsync<Clip[]>("Api/GetClips");
-
-		_eventDates = _clips
-			.Select(c => c.StartDate.Date)
-			.Concat(_clips.Select(c => c.EndDate.Date))
-			.Distinct()
-			.ToHashSet();
-	}
-
-	protected override async Task OnAfterRenderAsync(bool firstRender)
-	{
-		if (!_setDatePickerInitialDate && _clips != null && _datePicker != null)
-		{
-			_setDatePickerInitialDate = true;
-			await _datePicker.GoToDate(_clips.Max(c => c.EndDate));
-		}
-	}
-
-
-	private bool IsDateDisabledFunc(DateTime date)
-		=> !_eventDates.Contains(date);
-
-	private static string[] GetClipIcons(Clip clip)
-	{
-		// sentry_aware_object_detection
-		// user_interaction_honk
-		// user_interaction_dashcam_panel_save
-		// user_interaction_dashcam_icon_tapped
-		// sentry_aware_accel_0.532005
-
-		var baseIcon = clip.Type switch {
-			ClipType.Recent => Icons.Material.Filled.History,
-			ClipType.Saved => Icons.Material.Filled.CameraAlt,
-			ClipType.Sentry => Icons.Material.Filled.RadioButtonChecked,
-			_ => Icons.Material.Filled.QuestionMark
-		};
-
-		if (clip.Type == ClipType.Recent || clip.Type == ClipType.Unknown || clip.Event == null)
-			return new[] { baseIcon };
-
-		var secondIcon = clip.Event.Reason switch
-		{
-			"sentry_aware_object_detection" => Icons.Material.Filled.Animation,
-			"user_interaction_honk" => Icons.Material.Filled.Campaign,
-			"user_interaction_dashcam_panel_save" => Icons.Material.Filled.Archive,
-			_ => null
-		};
-
-		if (clip.Event.Reason.StartsWith("sentry_aware_accel_"))
-			secondIcon = Icons.Material.Filled.OpenWith;
-
-		return secondIcon == null ? new [] { baseIcon } : new[] { baseIcon, secondIcon };
-	}
-
-	private class ScrollToOptions
-	{
-		public int? Left { get; set; }
-
-		public int? Top { get; set; }
-
-		public string Behavior { get; set; }
-	}
-
-	private class DOMRect
-	{
-		public double Bottom { get; set; }
-		public double Top { get; set; }
-		public double Left { get; set; }
-		public double Right { get; set; }
-		public double Width { get; set; }
-		public double Height { get; set; }
-		public double X { get; set; }
-		public double Y { get; set; }
-	}
-
-	private async Task DatePicked(DateTime? pickedDate)
-	{
-		Console.WriteLine("date picked");
-		if (!pickedDate.HasValue || _ignoreDatePicked == pickedDate)
-			return;
-
-		var firstClipAtDate = _clips.FirstOrDefault(c => c.StartDate.Date == pickedDate);
-		if (firstClipAtDate == null)
-			return;
-
-
-		var listBoundingRect = await _eventsList.MudGetBoundingClientRectAsync();
-		var index = Array.IndexOf(_clips, firstClipAtDate);
-		var top = (int)(index * EventItemHeight - listBoundingRect.Height / 2 + EventItemHeight / 2);
-
-		await JsRuntime.InvokeVoidAsync("HTMLElement.prototype.scrollTo.call", _eventsList, new ScrollToOptions
-		{
-			Behavior = "smooth",
-			Top = top
-		});
-
-		await Task.Delay(500);
-		_highlightClip = firstClipAtDate;
-	}
-
-	private void EventListScrolled()
-		=> _scrollDebounceTimer.Change(500, Timeout.Infinite);
-
-	private async void ScrollDebounceTimerTick(object _)
-	{
-		var scrollTop = await JsRuntime.InvokeAsync<double>("getScrollTop", _eventsList);
-		var listBoundingRect = await _eventsList.MudGetBoundingClientRectAsync();
-		var centerScrollPosition = scrollTop + listBoundingRect.Height / 2 + EventItemHeight / 2;
-		var itemIndex = (int)centerScrollPosition / EventItemHeight;
-		var atClip = _clips.ElementAt(Math.Min(_clips.Length - 1, itemIndex));
-
-		_ignoreDatePicked = atClip.StartDate.Date;
-		await _datePicker.GoToDate(atClip.StartDate.Date);
-	}
 }

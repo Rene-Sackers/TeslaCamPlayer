@@ -23,6 +23,7 @@
 	</ItemGroup>
 
 	<ItemGroup>
+	  <Folder Include="ExtensionMethods\" />
 	  <Folder Include="Models\" />
 	  <Folder Include="wwwroot\css\" />
 	</ItemGroup>

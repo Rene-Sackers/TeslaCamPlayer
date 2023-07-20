@@ -1,0 +1,28 @@
+﻿@using TeslaCamPlayer.BlazorHosted.Shared.Models
+
+<div class="viewer">
+	<div class="top-row">
+		<VideoPlayer @ref="_videoPlayerFront" Class="video video--front" Src="@_frontVideoSrc" VideoEnded="FrontVideoEnded" TimeUpdate="FrontVideoTimeUpdate" />
+	</div>
+	<div class="bottom-row">
+		<VideoPlayer @ref="_videoPlayerLeftRepeater" Class="video video--left-repeater" Src="@_leftRepeaterVideoSrc" />
+		<VideoPlayer @ref="_videoPlayerBack" Class="video video--back" Src="@_backVideoSrc" />
+		<VideoPlayer @ref="_videoPlayerRightRepeater" Class="video video--right-repeater" Src="@_rightRepeaterVideoSrc" />
+	</div>
+	<div class="controls">
+		<div class="play-pause">
+			<MudIconButton Icon="@Icons.Material.Filled.SkipPrevious" Size="Size.Medium" OnClick="@PreviousButtonClicked" />
+			<MudIconButton Icon="@(_isPlaying ? Icons.Material.Filled.PauseCircleOutline : Icons.Material.Filled.PlayCircleOutline)" Size="Size.Large" OnClick="PlayPauseClicked" />
+			<MudIconButton Icon="@Icons.Material.Filled.SkipNext" Size="Size.Medium" OnClick="@NextButtonClicked" />
+		</div>
+		<MudSlider
+			T="double"
+			@ref="_timelineSlider"
+			Max="@_timelineMaxSeconds"
+			Step="0.1"
+			@bind-Value="@TimelineValue"
+			Variant="Variant.Filled"
+			@onmousedown="@TimelineSliderMouseDown"
+			@onmouseup="@TimelineSliderMouseUp"/>
+	</div>
+</div>

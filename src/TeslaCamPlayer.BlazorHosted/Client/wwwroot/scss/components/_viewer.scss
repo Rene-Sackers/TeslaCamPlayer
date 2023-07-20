@@ -1,0 +1,44 @@
+﻿.viewer {
+	min-width: 0;
+	height: 100%;
+	display: flex;
+	flex-direction: column;
+	flex-grow: 1;
+
+	.top-row, .bottom-row {
+		display: flex;
+		justify-content: center;
+		flex-grow: 1;
+		min-height: 0;
+
+		video {
+			min-width: 0;
+			height: 100%;
+		}
+	}
+
+	.top-row {
+		align-items: flex-end;
+	}
+
+	.bottom-row {
+		align-items: flex-start;
+	}
+
+	.controls {
+		display: flex;
+		flex-direction: column;
+		align-items: center;
+		padding: 10px;
+		
+		.play-pause {
+			display: flex;
+			flex-direction: row;
+			align-items: center;
+		}
+		
+		.mud-slider {
+			width: 80%;
+		}
+	}
+}

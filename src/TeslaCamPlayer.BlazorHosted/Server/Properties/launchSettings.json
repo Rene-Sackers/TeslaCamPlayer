@@ -16,7 +16,7 @@
             "launchBrowser": false,
             "environmentVariables": {
                 "ASPNETCORE_ENVIRONMENT": "Development",
-                "ClipsRootPath": "D:\\TeslaCam\\MCU-2\\TeslaCam"
+                "ClipsRootPath": "D:\\TeslaCam"
             },
             "dotnetRunMessages": false,
             "inspectUri": "{wsProtocol}://{url.hostname}:{url.port}/_framework/debug/ws-proxy?browser={browserInspectUri}",

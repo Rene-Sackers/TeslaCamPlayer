@@ -15,13 +15,17 @@ html, body {
 	display: flex;
 	height: 100%;
 	
-	.viewer {
+	.viewer-container {
 		flex-grow: 1;
+		min-width: 0;
+		height: 100%;
+		overflow: hidden;
 	}
 	
 	.browser {
 		display: flex;
 		flex-flow: column;
+		flex-shrink: 0;
 	}
 }
 
@@ -40,24 +44,11 @@ $event-item-inner-height: $event-item-height - $event-item-padding * 2;
 	cursor: pointer;
 	align-items: center;
 
-	@keyframes highlight-animation {
-		0% {
-			background-color: transparent;
-		}
-		50% {
-			background-color: var(--mud-palette-background-grey);
-		}
-		100% {
-			background-color: transparent;
-		}
-	}
-	
-	&--highlight {
-		animation: highlight-animation 1s ease forwards;
-		
+	&:hover {
+		background-color: var(--mud-palette-background-grey) !important;
 	}
 
-	&:hover {
+	&--active {
 		background-color: var(--mud-palette-background-grey) !important;
 	}
 

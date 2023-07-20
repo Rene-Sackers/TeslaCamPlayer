@@ -1,0 +1,44 @@
+﻿<video
+	@ref="_player"
+	src="@Src"
+	class="@Class
+	@(string.IsNullOrWhiteSpace(Src) ? "d-none" : null)"
+	@onended="@VideoEndedHandler"
+	@ontimeupdate="@TimeUpdateHandler"></video>
+
+@code {
+	[Inject]
+	public IJSRuntime JsRuntime { get; set; }
+	
+	[Parameter]
+	public string Src { get; set; }
+	
+	[Parameter]
+	public string Class { get; set; }
+	
+	[Parameter]
+	public EventCallback VideoEnded { get; set; }
+	
+	[Parameter]
+	public EventCallback TimeUpdate { get; set; }
+
+	private ElementReference _player;
+	
+	public ValueTask PlayAsync()
+		=> JsRuntime.InvokeVoidAsync("HTMLVideoElement.prototype.play.call", _player);
+
+	public ValueTask PauseAsync()
+		=> JsRuntime.InvokeVoidAsync("HTMLVideoElement.prototype.pause.call", _player);
+
+	public ValueTask<double> GetTimeAsync()
+		=> JsRuntime.InvokeAsync<double>("getProperty", _player, "currentTime");
+
+	public ValueTask SetTimeAsync(double time)
+		=> JsRuntime.InvokeVoidAsync("setProperty", _player, "currentTime", time);
+
+	private Task VideoEndedHandler()
+		=> VideoEnded.InvokeAsync();
+
+	private Task TimeUpdateHandler()
+		=> TimeUpdate.InvokeAsync();
+}
