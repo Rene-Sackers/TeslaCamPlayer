@@ -126,6 +126,8 @@ jobs:
     needs:
       - windows-selfcontained
       - windows-dependant
+    env:
+      VERSION: ${{needs.version.outputs.VERSION}}
     permissions:
       contents: write
     steps:
