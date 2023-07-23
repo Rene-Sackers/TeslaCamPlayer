@@ -110,7 +110,7 @@ jobs:
           dotnet-version: '7.0.x'
       
       - name: Dotnet publish
-        run: dotnet publish ./src/TeslaCamPlayer.BlazorHosted/Server -r win-x64 -c Release --self-contained false -p:PublishTrimmed=true -p:DefineConstants=WINDOWS -o ./publish-sc/
+        run: dotnet publish ./src/TeslaCamPlayer.BlazorHosted/Server -r win-x64 -c Release -p:DefineConstants=WINDOWS -o ./publish-sc/
 
       - name: Zip release
         uses: TheDoctor0/zip-release@0.7.1
