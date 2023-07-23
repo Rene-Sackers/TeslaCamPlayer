@@ -4,5 +4,5 @@ namespace TeslaCamPlayer.BlazorHosted.Server.Services.Interfaces;
 
 public interface IClipsService
 {
-	Task<Clip[]> GetClipsAsync();
+	Task<Clip[]> GetClipsAsync(bool refreshCache = false);
 }

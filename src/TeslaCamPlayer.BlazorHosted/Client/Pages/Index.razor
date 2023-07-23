@@ -1,9 +1,11 @@
 ﻿@page "/"
 @using TeslaCamPlayer.BlazorHosted.Shared.Models
-@using TeslaCamPlayer.BlazorHosted.Client.Helpers
-@if (_clips == null)
+
+@if (_filteredclips == null)
 {
-	<text>Loading...</text>
+	<div class="loading-screen">
+		Loading...
+	</div>
 }
 else
 {
@@ -21,8 +23,23 @@ else
 				DateChanged="DatePicked"
 				@onmousewheel="@DatePickerOnMouseWheel"/>
 
+			<MudToolBar Class="py-2">
+				<MudTooltip Text="Refresh videos/events">
+					<MudIconButton Icon="@Icons.Material.Filled.Refresh" Size="Size.Small" OnClick="@(() => RefreshEventsAsync(true))"/>
+				</MudTooltip>
+				<MudSpacer/>
+				<div>
+					<MudIconButton Icon="@Icons.Material.Filled.FilterAlt" Size="Size.Small" OnClick="@ToggleFilter"/>
+
+					<MudPopover @bind-Open="_showFilter" AnchorOrigin="Origin.CenterLeft" TransformOrigin="Origin.CenterRight" Class="pa-4">
+						<EventFilter Values="_eventFilter" ValuesChanged="EventFilterValuesChanged" />
+					</MudPopover>
+					<MudOverlay @bind-Visible="_showFilter" OnClick="ToggleFilter" />
+				</div>
+			</MudToolBar>
+
 			<div @ref="_eventsList" class="events-list" @onscroll="EventListScrolled">
-				<Virtualize TItem="Clip" ItemSize="@EventItemHeight" Items="@_clips" OverscanCount="10">
+				<Virtualize TItem="Clip" ItemSize="@EventItemHeight" Items="@_filteredclips" OverscanCount="10">
 					<ItemContent>
 						<div class="event @(_activeClip == context ? "event--active" : null)" @key="@context.EndDate" @onclick="@(() => SetActiveClip(context))">
 							@if (!string.IsNullOrWhiteSpace(context.ThumbnailUrl))

@@ -1,5 +1,4 @@
-﻿using System.IO;
-using System.Text.RegularExpressions;
+﻿using System.Text.RegularExpressions;
 using Newtonsoft.Json;
 using Serilog;
 using TeslaCamPlayer.BlazorHosted.Server.Providers.Interfaces;
@@ -28,9 +27,9 @@ public partial class ClipsService : IClipsService
 			? JsonConvert.DeserializeObject<Clip[]>(await File.ReadAllTextAsync(CacheFilePath))
 			: null;
 
-	public async Task<Clip[]> GetClipsAsync()
+	public async Task<Clip[]> GetClipsAsync(bool refreshCache = false)
 	{
-		if ((_cache ??= await GetCachedAsync()) != null)
+		if (!refreshCache && (_cache ??= await GetCachedAsync()) != null)
 			return _cache;
 
 		var videoFileInfos = (await Task.WhenAll(Directory

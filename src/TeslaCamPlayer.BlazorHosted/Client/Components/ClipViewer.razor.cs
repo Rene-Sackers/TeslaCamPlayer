@@ -100,7 +100,7 @@ public partial class ClipViewer : ComponentBase
 			await player(_videoPlayerRightRepeater);
 			await player(_videoPlayerBack);
 		}
-		catch (Exception e)
+		catch
 		{
 			// ignore
 		}
