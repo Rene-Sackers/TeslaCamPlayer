@@ -1,0 +1,134 @@
+﻿@using TeslaCamPlayer.BlazorHosted.Client.Models
+<MudTreeView Items="@_treeItems" Dense="true">
+	<ItemTemplate>
+		<MudTreeViewItem Expanded="true" Items="@context.TreeItems">
+			<Content>
+				<MudCheckBox
+					T="bool?"
+					Checked="@context.IsCheckedState()"
+					CheckedChanged="@(_ => context.CheckedChanged())">
+					<div class="d-flex align-center">
+						<MudIcon Icon="@context.Icon" Size="Size.Small" Class="mr-1"/>
+						@context.Text
+					</div>
+				</MudCheckBox>
+			</Content>
+		</MudTreeViewItem>
+	</ItemTemplate>
+</MudTreeView>
+<div class="event-filter-arrow"></div>
+
+@code {
+	private class TreeItemData
+	{
+		private readonly Action<bool> _isCheckedChangedHandler;
+
+		public TreeItemData Parent { get; set; } = null;
+
+		public string Text { get; }
+		public string Icon { get; }
+
+		public bool IsChecked { get; set; }
+
+		public bool HasChild => TreeItems?.Any() == true;
+
+		public HashSet<TreeItemData> TreeItems { get; set; } = new();
+
+		public TreeItemData(string text, string icon, bool isChecked, Action<bool> isCheckedChangedHandler = null)
+		{
+			_isCheckedChangedHandler = isCheckedChangedHandler;
+			Text = text;
+			Icon = icon;
+			IsChecked = isChecked;
+		}
+
+		public TreeItemData AddChild(string itemName, string icon, bool isChecked, Action<bool> isCheckedChangedHandler = null)
+		{
+			var item = new TreeItemData(itemName, icon, isChecked, isCheckedChangedHandler)
+			{
+				Parent = this
+			};
+			TreeItems.Add(item);
+
+			return item;
+		}
+
+		public bool? IsCheckedState()
+		{
+			if (!HasChild)
+				return IsChecked;
+
+			if (TreeItems.All(i => i.IsChecked))
+				return true;
+
+			if (TreeItems.All(i => !i.IsChecked))
+				return false;
+
+			return null;
+		}
+
+		public void CheckedChanged()
+		{
+			IsChecked = !IsChecked;
+			if (HasChild)
+			{
+				foreach (var child in TreeItems)
+				{
+					child.IsChecked = IsChecked;
+				}
+			}
+
+			if (Parent != null)
+			{
+				Parent.IsChecked = Parent.TreeItems.All(i => i.IsChecked);
+			}
+
+			_isCheckedChangedHandler?.Invoke(IsChecked);
+		}
+	}
+
+	[Parameter]
+	public EventFilterValues Values { get; set; } = new();
+
+	[Parameter]
+	public EventCallback<EventFilterValues> ValuesChanged { get; set; }
+
+	private HashSet<TreeItemData> _treeItems = new();
+
+	private void ValueSetterAction(bool isChecked, Action valueSetter)
+	{
+		valueSetter.Invoke();
+		ValuesChanged.InvokeAsync(Values);
+	}
+
+	protected override void OnInitialized()
+	{
+		// TODO: Set IsChecked for parent items correctly
+		var dashcamEvents = new TreeItemData("Dashcam", Icons.Material.Filled.CameraAlt, true, c => ValueSetterAction(c, () =>
+		{
+			Values.DashcamHonk = c;
+			Values.DashcamSaved = c;
+			Values.DashcamOther = c;
+		}));
+		dashcamEvents.AddChild("Honk", Icons.Material.Filled.Campaign, Values.DashcamHonk, c => ValueSetterAction(c, () => Values.DashcamHonk = c));
+		dashcamEvents.AddChild("Saved", Icons.Material.Filled.Archive, Values.DashcamSaved, c => ValueSetterAction(c, () => Values.DashcamSaved = c));
+		dashcamEvents.AddChild("Other", Icons.Material.Filled.QuestionMark, Values.DashcamOther, c => ValueSetterAction(c, () => Values.DashcamOther = c));
+		
+		var sentryEvents = new TreeItemData("Sentry", Icons.Material.Filled.RadioButtonChecked, true, c => ValueSetterAction(c, () =>
+		{
+			Values.SentryObjectDetection = c;
+			Values.SentryAccelerationDetection = c;
+			Values.SentryOther = c;
+		}));
+		sentryEvents.AddChild("Object detection", Icons.Material.Filled.Animation, Values.SentryObjectDetection, c => ValueSetterAction(c, () => Values.SentryObjectDetection = c));
+		sentryEvents.AddChild("Acceleration detection", Icons.Material.Filled.OpenWith, Values.SentryAccelerationDetection, c => ValueSetterAction(c, () => Values.SentryAccelerationDetection = c));
+		sentryEvents.AddChild("Other", Icons.Material.Filled.QuestionMark, Values.SentryOther, c => ValueSetterAction(c, () => Values.SentryOther = c));
+
+		var recentEvents = new TreeItemData("Recent", Icons.Material.Filled.History, Values.Recent, c => ValueSetterAction(c, () => Values.Recent = c));
+
+		_treeItems.Add(dashcamEvents);
+		_treeItems.Add(sentryEvents);
+		_treeItems.Add(recentEvents);
+	}
+
+}

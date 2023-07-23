@@ -21,8 +21,8 @@ public class ApiController : ControllerBase
 	}
 
 	[HttpGet]
-	public async Task<Clip[]> GetClips()
-		=> await _clipsService.GetClipsAsync();
+	public async Task<Clip[]> GetClips(bool refreshCache = false)
+		=> await _clipsService.GetClipsAsync(refreshCache);
 
 	private bool IsUnderRootPath(string path)
 		=> path.StartsWith(_rootFullPath);

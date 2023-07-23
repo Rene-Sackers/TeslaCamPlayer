@@ -1,0 +1,141 @@
+name: Release
+
+on:
+  push:
+    branches:
+      - release
+
+jobs:
+  version:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    outputs:
+      version: ${{ steps.set-version.outputs.VERSION }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v3
+    
+      - name: Set version
+        id: set-version
+        run: |
+          echo "VERSION=$(date +%Y.%-m.%-d.%-H%M)" >> $GITHUB_ENV
+          echo "VERSION=$(date +%Y.%-m.%-d.%-H%M)" >> $GITHUB_OUTPUT
+          echo "Version: $(date +%Y.%-m.%-d.%-H%M)"
+
+      - name: Tag commit
+        run: |
+          git tag v$VERSION ${{ github.sha }}
+          git push origin v$VERSION
+
+  docker:
+    runs-on: ubuntu-latest
+    needs: version
+    env:
+      VERSION: ${{needs.version.outputs.VERSION}}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v3
+            
+      - name: Docker login
+        run: docker login -u renesackers -p ${{ secrets.DOCKER_HUB }}
+        
+      - name: Build the Docker image
+        run: docker build ./src/ -t renesackers/teslacamplayer:$VERSION -t renesackers/teslacamplayer:latest
+        
+      - name: Push docker image
+        run: docker push --all-tags renesackers/teslacamplayer
+
+  windows-selfcontained:
+    runs-on: ubuntu-latest
+    needs: version
+    env:
+      VERSION: ${{needs.version.outputs.VERSION}}
+      ZIP_FILE_NAME: "teslacamplayer-win-x64-selfcontained-${{needs.version.outputs.VERSION}}.zip"
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v3
+          
+      - name: gulp default
+        if: false
+        run: |
+          cd ./src/TeslaCamPlayer.BlazorHosted/Client/
+          npm install
+          gulp default
+      
+      - name: Setup .NET Core SDK 7.0.x
+        uses: actions/setup-dotnet@v3.2.0
+        with:
+          dotnet-version: '7.0.x'
+      
+      - name: Dotnet publish
+        run: dotnet publish ./src/TeslaCamPlayer.BlazorHosted/Server -r win-x64 -c Release --self-contained true -p:PublishTrimmed=true -p:DefineConstants=WINDOWS -o ./publish/
+
+      - name: Zip release
+        uses: TheDoctor0/zip-release@0.7.1
+        with:
+          filename: "${{env.ZIP_FILE_NAME}}"
+          directory: ./publish/
+
+      - name: Upload release zip artifact
+        uses: actions/upload-artifact@v3
+        with:
+          name: release-sc
+          path: "./publish/${{env.ZIP_FILE_NAME}}"
+
+  windows-dependant:
+    runs-on: ubuntu-latest
+    needs: version
+    env:
+      VERSION: ${{needs.version.outputs.VERSION}}
+      ZIP_FILE_NAME: "teslacamplayer-win-x64-${{needs.version.outputs.VERSION}}.zip"
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v3
+          
+      - name: gulp default
+        if: false
+        run: |
+          cd ./src/TeslaCamPlayer.BlazorHosted/Client/
+          npm install
+          gulp default
+      
+      - name: Setup .NET Core SDK 7.0.x
+        uses: actions/setup-dotnet@v3.2.0
+        with:
+          dotnet-version: '7.0.x'
+      
+      - name: Dotnet publish
+        run: dotnet publish ./src/TeslaCamPlayer.BlazorHosted/Server -r win-x64 -c Release -p:DefineConstants=WINDOWS -o ./publish/
+
+      - name: Zip release
+        uses: TheDoctor0/zip-release@0.7.1
+        with:
+          filename: "${{env.ZIP_FILE_NAME}}"
+          directory: ./publish/
+
+      - name: Upload release zip artifact
+        uses: actions/upload-artifact@v3
+        with:
+          name: release-sc
+          path: "./publish/${{env.ZIP_FILE_NAME}}"
+
+  release:
+    runs-on: ubuntu-latest
+    needs:
+      - version
+      - windows-selfcontained
+      - windows-dependant
+    env:
+      VERSION: ${{needs.version.outputs.VERSION}}
+    permissions:
+      contents: write
+    steps:
+      - name: Download all workflow run artifacts
+        uses: actions/download-artifact@v3
+
+      - name: Create release
+        uses: softprops/action-gh-release@v1
+        with:
+          files: "**/*.zip"
+          tag_name: "v${{env.VERSION}}"
