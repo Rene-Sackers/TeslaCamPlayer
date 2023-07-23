@@ -135,5 +135,5 @@ jobs:
       - name: Create release
         uses: softprops/action-gh-release@v1
         with:
-          files: "**/${{env.ZIP_FILE_NAME}}"
+          files: "**/*.zip"
           tag_name: "v${{env.VERSION}}"
