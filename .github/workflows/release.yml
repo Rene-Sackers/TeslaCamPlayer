@@ -31,7 +31,6 @@ jobs:
   docker:
     runs-on: ubuntu-latest
     needs: version
-    if: false
     env:
       VERSION: ${{needs.version.outputs.VERSION}}
     steps:
