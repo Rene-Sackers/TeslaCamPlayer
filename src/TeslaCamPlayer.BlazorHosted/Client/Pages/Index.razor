@@ -19,7 +19,7 @@ else
 				FirstDayOfWeek="DayOfWeek.Monday"
 				Class="browser-date-picker"
 				DateChanged="DatePicked"
-				@onmousewheel="DatePickerOnMouseWheel"/>
+				@onmousewheel="@DatePickerOnMouseWheel"/>
 
 			<div @ref="_eventsList" class="events-list" @onscroll="EventListScrolled">
 				<Virtualize TItem="Clip" ItemSize="@EventItemHeight" Items="@_clips" OverscanCount="10">
