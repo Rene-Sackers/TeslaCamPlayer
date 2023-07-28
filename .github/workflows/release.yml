@@ -45,6 +45,13 @@ jobs:
         
       - name: Push docker image
         run: docker push --all-tags renesackers/teslacamplayer
+        
+      - name: Update docker hub readme
+        uses: peter-evans/dockerhub-description@v3
+        with:
+          username: ${{ secrets.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_PASSWORD }}
+          repository: renesackers/teslacamplayer
 
   windows-selfcontained:
     runs-on: ubuntu-latest
