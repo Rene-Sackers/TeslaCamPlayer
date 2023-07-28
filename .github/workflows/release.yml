@@ -126,7 +126,7 @@ jobs:
     needs:
       - version
       - windows-selfcontained
-      - windows-dependant
+#      - windows-dependant
     env:
       VERSION: ${{needs.version.outputs.VERSION}}
     permissions:
