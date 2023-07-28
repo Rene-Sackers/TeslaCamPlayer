@@ -1,6 +1,5 @@
 using System.Web;
 using Microsoft.AspNetCore.Mvc;
-using Serilog;
 using TeslaCamPlayer.BlazorHosted.Server.Providers.Interfaces;
 using TeslaCamPlayer.BlazorHosted.Server.Services.Interfaces;
 using TeslaCamPlayer.BlazorHosted.Shared.Models;

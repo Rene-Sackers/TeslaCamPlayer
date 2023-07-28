@@ -11,6 +11,8 @@ public class SettingsProvider : ISettingsProvider
 
 	private static Settings SettingsValueFactory() =>
 		new ConfigurationBuilder()
+			.AddJsonFile(Path.Combine(AppContext.BaseDirectory, "appsettings.json"), optional: true)
+			.AddJsonFile(Path.Combine(AppContext.BaseDirectory, "appsettings.Development.json"), optional: true)
 			.AddEnvironmentVariables()
 			.Build()
 			.Get<Settings>();

@@ -24,6 +24,18 @@ builder.Services.AddTransient<IFfProbeService, FfProbeServiceDocker>();
 
 var app = builder.Build();
 
+var clipsRootPath = app.Services.GetService<ISettingsProvider>()!.Settings.ClipsRootPath;
+try
+{
+	if (!Directory.Exists(clipsRootPath))
+		throw new Exception("Configured clips root path doesn't exist, or no permission to access: " + clipsRootPath);
+}
+catch (Exception e)
+{
+	Log.Fatal(e, e.Message);
+	return;
+}
+
 // Configure the HTTP request pipeline.
 if (app.Environment.IsDevelopment())
 {
