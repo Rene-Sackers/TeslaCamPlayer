@@ -15,14 +15,17 @@
 			<MudIconButton Icon="@(_isPlaying ? Icons.Material.Filled.PauseCircleOutline : Icons.Material.Filled.PlayCircleOutline)" Size="Size.Large" OnClick="PlayPauseClicked" />
 			<MudIconButton Icon="@Icons.Material.Filled.SkipNext" Size="Size.Medium" OnClick="@NextButtonClicked" />
 		</div>
-		<MudSlider
-			T="double"
-			@ref="_timelineSlider"
-			Max="@_timelineMaxSeconds"
-			Step="0.1"
-			@bind-Value="@TimelineValue"
-			Variant="Variant.Filled"
-			@onpointerdown="@TimelineSliderMouseDown"
-			@onpointerup="@TimelineSliderMouseUp"/>
+		<div class="seeker-slider-container">
+			<MudSlider
+				T="double"
+				@ref="_timelineSlider"
+				Max="@_timelineMaxSeconds"
+				Step="0.01"
+				@bind-Value="@TimelineValue"
+				Variant="Variant.Filled"
+				@onpointerdown="@TimelineSliderMouseDown"
+				@onpointerup="@TimelineSliderMouseUp"/>
+			<div class="event-marker" style="@EventMarkerStyle()"></div>
+		</div>
 	</div>
 </div>

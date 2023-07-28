@@ -9,6 +9,8 @@ namespace TeslaCamPlayer.BlazorHosted.Server.Services;
 
 public partial class ClipsService : IClipsService
 {
+	private const string NoThumbnailImageUrl = "/img/no-thumbnail.png";
+	
 	private static readonly string CacheFilePath = Path.Combine(AppContext.BaseDirectory, "clips.json");
 	private static readonly Regex FileNameRegex = FileNameRegexGenerated();
 	private static Clip[] _cache;
@@ -32,34 +34,83 @@ public partial class ClipsService : IClipsService
 		if (!refreshCache && (_cache ??= await GetCachedAsync()) != null)
 			return _cache;
 
-		var videoFileInfos = (await Task.WhenAll(Directory
+		var videoFiles = (await Task.WhenAll(Directory
 			.GetFiles(_settingsProvider.Settings.ClipsRootPath, "*.mp4", SearchOption.AllDirectories)
 			.AsParallel()
 			.Select(path => new { Path = path, RegexMatch = FileNameRegex.Match(path) })
 			.Where(f => f.RegexMatch.Success)
 			.ToList()
-			.Select(async f => new { f.Path, f.RegexMatch, VideoFile = await TryParseVideoFileAsync(f.Path, f.RegexMatch) })))
+			.Select(async f => await TryParseVideoFileAsync(f.Path, f.RegexMatch))))
 			.AsParallel()
-			.Where(vfi => vfi.VideoFile != null)
+			.Where(vfi => vfi != null)
 			.ToList();
 
-		var videoFiles = videoFileInfos
-			.Select(vfi => vfi.VideoFile)
-			.ToArray();
-
-		var clips = videoFileInfos
-			.Select(vfi => vfi.VideoFile.EventFolderName)
+		var recentClips = GetRecentClips(videoFiles
+			.Where(vfi => vfi.ClipType == ClipType.Recent).ToList());
+		
+		var clips = videoFiles
+			.Select(vfi => vfi.EventFolderName)
 			.Distinct()
 			.AsParallel()
-			.Where(e => !string.IsNullOrWhiteSpace(e)) // TODO: Work with RecentClips
+			.Where(e => !string.IsNullOrWhiteSpace(e))
 			.Select(e => ParseClip(e, videoFiles))
-			.ToArray()
+			.Concat(recentClips.AsParallel())
 			.OrderByDescending(c => c.StartDate)
 			.ToArray();
 
 		_cache = clips;
 		await File.WriteAllTextAsync(CacheFilePath, JsonConvert.SerializeObject(clips));
 		return _cache;
+	}
+
+	private static IEnumerable<Clip> GetRecentClips(List<VideoFile> recentVideoFiles)
+	{
+		recentVideoFiles = recentVideoFiles.OrderByDescending(f => f.StartDate).ToList();
+
+		var currentClipSegments = new List<ClipVideoSegment>();
+		for (var i = 0; i < recentVideoFiles.Count;)
+		{
+			var currentVideoFile = recentVideoFiles[i];
+			var segmentVideos = recentVideoFiles.Where(f => f.StartDate == currentVideoFile.StartDate).ToList();
+			var segment = new ClipVideoSegment
+			{
+				StartDate = currentVideoFile.StartDate,
+				EndDate = currentVideoFile.StartDate.Add(currentVideoFile.Duration),
+				CameraFront = segmentVideos.FirstOrDefault(v => v.Camera == Cameras.Front),
+				CameraLeftRepeater = segmentVideos.FirstOrDefault(v => v.Camera == Cameras.LeftRepeater),
+				CameraRightRepeater = segmentVideos.FirstOrDefault(v => v.Camera == Cameras.RightRepeater),
+				CameraBack = segmentVideos.FirstOrDefault(v => v.Camera == Cameras.Back)
+			};
+			
+			currentClipSegments.Add(segment);
+
+			// Set i to the video after the last video in this clip segment, ie: the first video of the next segment.
+			i = i + segmentVideos.Count + 1;
+			
+			// No more recent video files
+			if (i >= recentVideoFiles.Count)
+			{
+				yield return new Clip(ClipType.Recent, currentClipSegments.ToArray())
+				{
+					ThumbnailUrl = NoThumbnailImageUrl
+				};
+				currentClipSegments.Clear();
+				yield break;
+			}
+
+			const int segmentVideoGapToleranceInSeconds = 5;
+			var nextSegmentFirstVideo = recentVideoFiles[i];
+			// Next video is within X seconds of last video of current segment, continue building clip segments
+			if (nextSegmentFirstVideo.StartDate <= segment.EndDate.AddSeconds(segmentVideoGapToleranceInSeconds))
+				continue;
+			
+			// Next video is more than X seconds, assume it's a new recent video clip
+			yield return new Clip(ClipType.Recent, currentClipSegments.ToArray())
+			{
+				ThumbnailUrl = NoThumbnailImageUrl
+			};
+			currentClipSegments.Clear();
+		}
 	}
 
 	private async Task<VideoFile> TryParseVideoFileAsync(string path, Match regexMatch)
@@ -153,7 +204,7 @@ public partial class ClipsService : IClipsService
 		var expectedEventThumbnailPath = Path.Combine(eventFolderPath, "thumb.png");
 		var thumbnailUrl = File.Exists(expectedEventThumbnailPath)
 			? $"/Api/Thumbnail/{Uri.EscapeDataString(expectedEventThumbnailPath)}"
-			: "/img/no-thumbnail.png";
+			: NoThumbnailImageUrl;
 
 		return new Clip(eventVideoFiles.First().ClipType, segments)
 		{

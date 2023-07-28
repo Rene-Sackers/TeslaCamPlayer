@@ -8,12 +8,12 @@ public class Clip
 	public DateTime StartDate { get; }
 	public DateTime EndDate { get; }
 	public double TotalSeconds { get; }
-	public string ThumbnailUrl { get; set; }
+	public string ThumbnailUrl { get; init; }
 
 	public Clip(ClipType type, ClipVideoSegment[] segments)
 	{
 		Type = type;
-		Segments = segments;
+		Segments = segments.OrderBy(s => s.StartDate).ToArray();
 		StartDate = segments.Min(s => s.StartDate);
 		EndDate = segments.Max(s => s.EndDate);
 		TotalSeconds = EndDate.Subtract(StartDate).TotalSeconds;

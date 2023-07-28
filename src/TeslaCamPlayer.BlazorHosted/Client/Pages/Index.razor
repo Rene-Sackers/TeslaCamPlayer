@@ -54,7 +54,7 @@ else
 									}
 								</div>
 								<div class="date">
-									@context.Event.Timestamp.ToString("yyyy-MM-dd HH:mm:ss")
+									@((context.Event?.Timestamp ?? context.StartDate).ToString("yyyy-MM-dd HH:mm:ss"))
 								</div>
 							</div>
 						</div>

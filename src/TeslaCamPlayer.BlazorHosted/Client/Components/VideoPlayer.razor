@@ -4,7 +4,8 @@
 	class="@Class
 	@(string.IsNullOrWhiteSpace(Src) ? "d-none" : null)"
 	@onended="@VideoEndedHandler"
-	@ontimeupdate="@TimeUpdateHandler"></video>
+	@ontimeupdate="@TimeUpdateHandler"
+	disableremoteplayback></video>
 
 @code {
 	[Inject]

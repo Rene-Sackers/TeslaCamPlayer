@@ -51,7 +51,7 @@ public partial class ClipViewer : ComponentBase
 
 	protected override void OnInitialized()
 	{
-		_setVideoTimeDebounceTimer = new(100);
+		_setVideoTimeDebounceTimer = new(500);
 		_setVideoTimeDebounceTimer.Elapsed += ScrubVideoDebounceTick;
 	}
 
@@ -194,6 +194,16 @@ public partial class ClipViewer : ComponentBase
 		{
 			// ignore, happens sometimes
 		}
-		
+	}
+
+	private string EventMarkerStyle()
+	{
+		if (_clip?.Event?.Timestamp == null)
+			return "display: none";
+
+		var percentageOfClipAtTimestamp = Math.Round(_clip.Event.Timestamp.Subtract(_clip.StartDate).TotalSeconds / _clip.TotalSeconds * 100, 2);
+		percentageOfClipAtTimestamp = Math.Clamp(percentageOfClipAtTimestamp, 0, 100);
+
+		return $"left: {percentageOfClipAtTimestamp}%";
 	}
 }

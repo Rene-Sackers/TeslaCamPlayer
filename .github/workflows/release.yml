@@ -83,8 +83,10 @@ jobs:
           name: release-sc
           path: "./publish/${{env.ZIP_FILE_NAME}}"
 
+  # Self contained version is larger than self-contained + compressed, no need to build this version
   windows-dependant:
     runs-on: ubuntu-latest
+    if: false
     needs: version
     env:
       VERSION: ${{needs.version.outputs.VERSION}}
