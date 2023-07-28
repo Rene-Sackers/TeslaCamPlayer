@@ -1,5 +1,9 @@
 # TeslaCamPlayer
 
+[![Release](https://github.com/Rene-Sackers/TeslaCamPlayer/actions/workflows/release.yml/badge.svg)](https://github.com/Rene-Sackers/TeslaCamPlayer/actions/workflows/release.yml)
+
+GitHub: https://github.com/Rene-Sackers/TeslaCamPlayer
+
 A Blazor WASM application for easily viewing locally stored Tesla sentry & dashcam videos.
 
 Works great in combination with [TeslaUSB](https://github.com/marcone/teslausb).
