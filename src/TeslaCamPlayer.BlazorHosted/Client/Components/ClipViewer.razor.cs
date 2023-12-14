@@ -94,15 +94,7 @@ public partial class ClipViewer : ComponentBase
 		_timelineMaxSeconds = (clip.EndDate - clip.StartDate).TotalSeconds;
 
 		_currentSegment = _clip.Segments.First();
-		if (!await SetCurrentSegmentVideosAsync())
-			return;
-
-		if (_isPlaying)
-		{
-			// Let elements update
-			await AwaitUiUpdate();
-			await ToggleSetPlayingAsync(true);
-		}
+		await SetCurrentSegmentVideosAsync();
 	}
 
 	private async Task<bool> SetCurrentSegmentVideosAsync()
@@ -115,6 +107,10 @@ public partial class ClipViewer : ComponentBase
 		
 		_videoLoadedEventCount = 0;
 		var cameraCount = _currentSegment.CameraAnglesCount();
+
+		var wasPlaying = _isPlaying;
+		if (wasPlaying)
+			await TogglePlayingAsync(false);
 		
 		_videoPlayerFront.Src = _currentSegment.CameraFront?.Url;
 		_videoPlayerLeftRepeater.Src = _currentSegment.CameraLeftRepeater?.Url;
@@ -141,6 +137,9 @@ public partial class ClipViewer : ComponentBase
 			return false;
 		}
 
+		if (wasPlaying)
+			await TogglePlayingAsync(true);
+
 		return !_loadSegmentCts.IsCancellationRequested;
 	}
 
@@ -159,7 +158,7 @@ public partial class ClipViewer : ComponentBase
 		}
 	}
 
-	private Task ToggleSetPlayingAsync(bool? play = null)
+	private Task TogglePlayingAsync(bool? play = null)
 	{
 		play ??= !_isPlaying;
 		_isPlaying = play.Value;
@@ -167,16 +166,17 @@ public partial class ClipViewer : ComponentBase
 	}
 
 	private Task PlayPauseClicked()
-		=> ToggleSetPlayingAsync();
+		=> TogglePlayingAsync();
 
 	private async Task VideoEnded()
 	{
-		await ToggleSetPlayingAsync(false);
-		
 		if (_currentSegment == _clip.Segments.Last())
 			return;
 
+		await TogglePlayingAsync(false);
+
 		var nextSegment = _clip.Segments
+			.OrderBy(s => s.StartDate)
 			.SkipWhile(s => s != _currentSegment)
 			.Skip(1)
 			.FirstOrDefault()
@@ -184,17 +184,14 @@ public partial class ClipViewer : ComponentBase
 
 		if (nextSegment == null)
 		{
-			_isPlaying = false;
+			await TogglePlayingAsync(false);
 			return;
 		}
 
 		_currentSegment = nextSegment;
-
-		if (!await SetCurrentSegmentVideosAsync())
-			return;
-		
+		await SetCurrentSegmentVideosAsync();
 		await AwaitUiUpdate();
-		await ToggleSetPlayingAsync(true);
+		await TogglePlayingAsync(true);
 	}
 
 	private async Task FrontVideoTimeUpdate()
@@ -213,25 +210,25 @@ public partial class ClipViewer : ComponentBase
 		TimelineValue = secondsSinceClipStart;
 	}
 
-	private async Task TimelineSliderMouseDown()
+	private async Task TimelineSliderPointerDown()
 	{
 		_isScrubbing = true;
 		_wasPlayingBeforeScrub = _isPlaying;
-		await ToggleSetPlayingAsync(false);
+		await TogglePlayingAsync(false);
 		
 		// Allow value change event to trigger, then scrub before user releases mouse click
 		await AwaitUiUpdate();
 		await ScrubToSliderTime();
 	}
 
-	private Task TimelineSliderMouseUp()
+	private async Task TimelineSliderPointerUp()
 	{
+		Console.WriteLine("Pointer up");
+		await ScrubToSliderTime();
 		_isScrubbing = false;
 			
 		if (!_isPlaying && _wasPlayingBeforeScrub)
-			return ToggleSetPlayingAsync(true);
-		
-		return Task.CompletedTask;
+			await TogglePlayingAsync(true);
 	}
 
 	private async void ScrubVideoDebounceTick(object _, ElapsedEventArgs __)
@@ -269,14 +266,24 @@ public partial class ClipViewer : ComponentBase
 		}
 	}
 
+	private double DateTimeToTimelinePercentage(DateTime dateTime)
+	{
+		var percentage = Math.Round(dateTime.Subtract(_clip.StartDate).TotalSeconds / _clip.TotalSeconds * 100, 2);
+		return Math.Clamp(percentage, 0, 100);
+	}
+
+	private string SegmentStartMargerStyle(ClipVideoSegment segment)
+	{
+		var percentage = DateTimeToTimelinePercentage(segment.StartDate);
+		return $"left: {percentage}%";
+	}
+
 	private string EventMarkerStyle()
 	{
 		if (_clip?.Event?.Timestamp == null)
 			return "display: none";
 
-		var percentageOfClipAtTimestamp = Math.Round(_clip.Event.Timestamp.Subtract(_clip.StartDate).TotalSeconds / _clip.TotalSeconds * 100, 2);
-		percentageOfClipAtTimestamp = Math.Clamp(percentageOfClipAtTimestamp, 0, 100);
-
-		return $"left: {percentageOfClipAtTimestamp}%";
+		var percentage = DateTimeToTimelinePercentage(_clip.Event.Timestamp);
+		return $"left: {percentage}%";
 	}
 }

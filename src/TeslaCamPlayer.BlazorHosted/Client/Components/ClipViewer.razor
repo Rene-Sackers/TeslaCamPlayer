@@ -2,12 +2,12 @@
 
 <div class="viewer">
 	<div class="top-row">
-		<VideoPlayer @ref="_videoPlayerFront" Class="video video--front" VideoEnded="VideoEnded" TimeUpdate="FrontVideoTimeUpdate" />
+		<VideoPlayer @key="@("128D7AB3")" @ref="_videoPlayerFront" Class="video video--front" VideoEnded="VideoEnded" TimeUpdate="FrontVideoTimeUpdate" />
 	</div>
 	<div class="bottom-row">
-		<VideoPlayer @ref="_videoPlayerLeftRepeater" Class="video video--left-repeater" VideoEnded="VideoEnded" />
-		<VideoPlayer @ref="_videoPlayerBack" Class="video video--back" VideoEnded="VideoEnded" />
-		<VideoPlayer @ref="_videoPlayerRightRepeater" Class="video video--right-repeater" VideoEnded="VideoEnded" />
+		<VideoPlayer @key="@("D1916B24")" @ref="_videoPlayerLeftRepeater" Class="video video--left-repeater" VideoEnded="VideoEnded" />
+		<VideoPlayer @key="@("66EC38D4")" @ref="_videoPlayerBack" Class="video video--back" VideoEnded="VideoEnded" />
+		<VideoPlayer @key="@("87B15DCA")" @ref="_videoPlayerRightRepeater" Class="video video--right-repeater" VideoEnded="VideoEnded" />
 	</div>
 	<div class="controls">
 		<div class="play-pause">
@@ -25,9 +25,13 @@
 					Step="0.01"
 					@bind-Value="@TimelineValue"
 					Variant="Variant.Filled"
-					@onpointerdown="@TimelineSliderMouseDown"
-					@onpointerup="@TimelineSliderMouseUp"/>
-					<div class="event-marker" style="@EventMarkerStyle()"></div>
+					@onpointerdown="@TimelineSliderPointerDown"
+					@onpointerup="@TimelineSliderPointerUp"/>
+				<div class="event-marker" style="@EventMarkerStyle()"></div>
+				@foreach (var segment in _clip?.Segments ?? Array.Empty<ClipVideoSegment>())
+				{
+					<div class="segment-marker" style="@SegmentStartMargerStyle(segment)"></div>
+				}
 			</div>
 			<div class="time-container">@_clip?.EndDate.ToString("hh:mm:ss tt")</div>
 		</div>

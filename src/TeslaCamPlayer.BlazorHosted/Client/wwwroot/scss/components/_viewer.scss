@@ -1,4 +1,6 @@
-﻿.viewer {
+﻿@import "z-index";
+
+.viewer {
 	min-width: 0;
 	height: 100%;
 	display: flex;
@@ -61,6 +63,18 @@
 				transform: translate(-50%, -50%);
 				background-color: adjust-color(#f64e62ff, $alpha: -0.5);
 				pointer-events: none;
+				z-index: $z-timeline-event-marker;
+			}
+			
+			.segment-marker {
+				position: absolute;
+				width: 1px;
+				transform: translateX(-50%);
+				pointer-events: none;
+				top: 0;
+				bottom: 0;
+				background-color: #424242;
+				z-index: $z-timeline-segment-marker;
 			}
 			
 			.time-container {
@@ -72,6 +86,10 @@
 				position: relative;
 				flex-grow: 1;
 				display: flex;
+			}
+			
+			.mud-slider {
+				z-index: $z-timeline;
 			}
 		}
 	}
