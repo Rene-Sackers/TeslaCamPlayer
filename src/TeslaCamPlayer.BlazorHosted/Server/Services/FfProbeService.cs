@@ -7,12 +7,14 @@ namespace TeslaCamPlayer.BlazorHosted.Server.Services;
 public abstract class FfProbeService : IFfProbeService
 {
 	protected abstract string ExePath { get; }
-	
-	
+
+
 	public async Task<TimeSpan?> GetVideoFileDurationAsync(string videoFilePath)
 	{
 		try
 		{
+			Log.Information("Get video duration for video {Path}", videoFilePath);
+
 			var process = new Process
 			{
 				StartInfo = new ProcessStartInfo(ExePath)
@@ -36,7 +38,6 @@ public abstract class FfProbeService : IFfProbeService
 			return null;
 		}
 	}
-
 }
 
 public class FfProbeServiceWindows : FfProbeService

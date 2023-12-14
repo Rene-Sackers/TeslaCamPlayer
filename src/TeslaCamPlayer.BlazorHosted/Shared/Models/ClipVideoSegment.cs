@@ -8,5 +8,9 @@ public class ClipVideoSegment
 	public VideoFile CameraLeftRepeater { get; init; }
 	public VideoFile CameraRightRepeater { get; init; }
 	public VideoFile CameraBack { get; init; }
-	
+
+	public VideoFile[] VideoFiles => [CameraFront, CameraLeftRepeater, CameraRightRepeater, CameraBack];
+
+	public int CameraAnglesCount() => VideoFiles.Count(f => f != null);
+
 }

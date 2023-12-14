@@ -1,10 +1,12 @@
 ﻿<video
+	@key="@Src"
 	@ref="_player"
 	src="@Src"
 	class="@Class
 	@(string.IsNullOrWhiteSpace(Src) ? "d-none" : null)"
 	@onended="@VideoEndedHandler"
 	@ontimeupdate="@TimeUpdateHandler"
+	@oncanplaythrough="@OnLoadedData"
 	disableremoteplayback></video>
 
 @code {
@@ -22,6 +24,10 @@
 	
 	[Parameter]
 	public EventCallback TimeUpdate { get; set; }
+
+	public delegate void LoadedHandler();
+
+	public event LoadedHandler Loaded;
 
 	private ElementReference _player;
 	
@@ -42,4 +48,8 @@
 
 	private Task TimeUpdateHandler()
 		=> TimeUpdate.InvokeAsync();
+
+	private void OnLoadedData()
+		=> Loaded?.Invoke();
+
 }

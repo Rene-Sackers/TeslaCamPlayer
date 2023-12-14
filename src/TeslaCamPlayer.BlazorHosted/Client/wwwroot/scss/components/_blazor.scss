@@ -1,4 +1,5 @@
-﻿
+﻿@import "z-index";
+
 #blazor-error-ui {
 	background: lightyellow;
 	bottom: 0;
@@ -8,7 +9,7 @@
 	padding: 0.6rem 1.25rem 0.7rem 1.25rem;
 	position: fixed;
 	width: 100%;
-	z-index: 1000;
+	z-index: $z-blazor-error-ui;
 }
 
 #blazor-error-ui .dismiss {
