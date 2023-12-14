@@ -46,9 +46,10 @@
 		}
 		
 		.seeker-slider-container {
-			position: relative;
 			display: flex;
+			flex-direction: row;
 			width: 80%;
+			align-items: center;
 			
 			.event-marker {
 				$size: 20px;
@@ -60,6 +61,17 @@
 				transform: translate(-50%, -50%);
 				background-color: adjust-color(#f64e62ff, $alpha: -0.5);
 				pointer-events: none;
+			}
+			
+			.time-container {
+				flex-shrink: 0;
+			}
+			
+			.slider-container {
+				margin: 0 15px;
+				position: relative;
+				flex-grow: 1;
+				display: flex;
 			}
 		}
 	}

@@ -1,4 +1,9 @@
-﻿using System.Text.RegularExpressions;
+﻿using System;
+using System.Collections.Generic;
+using System.IO;
+using System.Linq;
+using System.Text.RegularExpressions;
+using System.Threading.Tasks;
 using Newtonsoft.Json;
 using Serilog;
 using TeslaCamPlayer.BlazorHosted.Server.Providers.Interfaces;
@@ -31,8 +36,17 @@ public partial class ClipsService : IClipsService
 
 	public async Task<Clip[]> GetClipsAsync(bool refreshCache = false)
 	{
-		if (!refreshCache && (_cache ??= await GetCachedAsync()) != null)
+		_cache ??= await GetCachedAsync();
+		
+		if (!refreshCache && _cache != null)
 			return _cache;
+
+		_cache ??= [];
+		
+		var knownVideoFiles = _cache
+			.SelectMany(c => c.Segments.SelectMany(s => s.VideoFiles))
+			.Where(f => f != null)
+			.ToDictionary(v => v.FilePath, v => v);
 
 		var videoFiles = (await Task.WhenAll(Directory
 			.GetFiles(_settingsProvider.Settings.ClipsRootPath, "*.mp4", SearchOption.AllDirectories)
@@ -40,7 +54,7 @@ public partial class ClipsService : IClipsService
 			.Select(path => new { Path = path, RegexMatch = FileNameRegex.Match(path) })
 			.Where(f => f.RegexMatch.Success)
 			.ToList()
-			.Select(async f => await TryParseVideoFileAsync(f.Path, f.RegexMatch))))
+			.Select(async f => knownVideoFiles.TryGetValue(f.Path, out var knownVideo) ? knownVideo : await TryParseVideoFileAsync(f.Path, f.RegexMatch))))
 			.AsParallel()
 			.Where(vfi => vfi != null)
 			.ToList();
