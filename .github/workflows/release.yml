@@ -69,10 +69,10 @@ jobs:
           npm install
           gulp default
       
-      - name: Setup .NET Core SDK 7.0.x
+      - name: Setup .NET SDK 8.0.x
         uses: actions/setup-dotnet@v3.2.0
         with:
-          dotnet-version: '7.0.x'
+          dotnet-version: '8.0.x'
       
       - name: Dotnet publish
         run: dotnet publish ./src/TeslaCamPlayer.BlazorHosted/Server -r win-x64 -c Release --self-contained true -p:PublishTrimmed=true -p:DefineConstants=WINDOWS -o ./publish/
@@ -89,7 +89,7 @@ jobs:
           name: release-sc
           path: "./publish/${{env.ZIP_FILE_NAME}}"
 
-  # Self contained version is larger than self-contained + compressed, no need to build this version
+  # Dependant version is larger than self-contained + compressed, no need to build this version
   windows-dependant:
     runs-on: ubuntu-latest
     if: false
@@ -108,10 +108,10 @@ jobs:
           npm install
           gulp default
       
-      - name: Setup .NET Core SDK 7.0.x
+      - name: Setup .NET SDK 8.0.x
         uses: actions/setup-dotnet@v3.2.0
         with:
-          dotnet-version: '7.0.x'
+          dotnet-version: '8.0.x'
       
       - name: Dotnet publish
         run: dotnet publish ./src/TeslaCamPlayer.BlazorHosted/Server -r win-x64 -c Release -p:DefineConstants=WINDOWS -o ./publish/

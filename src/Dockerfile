@@ -1,4 +1,4 @@
-﻿FROM mcr.microsoft.com/dotnet/sdk:7.0 AS publish
+﻿FROM mcr.microsoft.com/dotnet/sdk:8.0 AS publish
 COPY . /src
 WORKDIR "/src/TeslaCamPlayer.BlazorHosted/Server"
 RUN dotnet restore .
